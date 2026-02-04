@@ -1,0 +1,3 @@
+- [X] Install dependencies
+- [] Setup database
+- [] Auth
