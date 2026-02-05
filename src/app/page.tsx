@@ -1,4 +1,4 @@
-"use client";
+
 import AuthPage from "@/components/login";
 
 export default function Page() {
