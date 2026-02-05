@@ -1,3 +1,4 @@
 - [X] Install dependencies
-- [] Setup database
-- [] Auth
+- [X] Setup database
+- [X] Better Auth (using email, password)
+- [] Better Auth (using social providers)
