@@ -1,21 +1,19 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { signupSchema } from "@/lib/schema";
+import { signUpSchema, signInSchema } from "@/lib/schema";
 import { redirect } from "next/navigation";
 
 export async function signUpAction(formData: FormData) {
-  
-  console.error("Form",formData)
   const rawData = {
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
   };
-  const validatedData = signupSchema.safeParse(rawData);
+  const validatedData = signUpSchema.safeParse(rawData);
   if (!validatedData.success) {
-    console.error(validatedData.error)
+    console.error(validatedData.error);
     return;
   }
   await auth.api.signUpEmail({
@@ -25,5 +23,24 @@ export async function signUpAction(formData: FormData) {
       password: validatedData.data.password,
     },
   });
+  redirect("/home");
+}
+export async function signInAction(formData: FormData) {
+  const rawData = {
+    email: formData.get("email"),
+    password: formData.get("password"),
+  };
+  const validatedData = signInSchema.safeParse(rawData);
+  if (!validatedData.success) {
+    console.error(validatedData.error);
+    return;
+  }
+  await auth.api.signInEmail({
+    body: {
+      email: validatedData.data.email,
+      password: validatedData.data.password,
+    },
+  });
+  
   redirect("/home");
 }

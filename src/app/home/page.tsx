@@ -1,9 +1,6 @@
 "use client";
-import { useSession } from "@/lib/auth-client";
-
+import Hero from "@/components/view/Hero"
 export default function Home() {
-  const session = useSession();
-  console.log(session);
-  if (!session) return;
-  return <div>Hey! {session.data?.user.name}</div>;
+ 
+  return <><Hero/></>;
 }
