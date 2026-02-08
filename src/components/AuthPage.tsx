@@ -16,12 +16,15 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
-  loginSchema,
-  signupSchema,
+  signInSchema,
+  signUpSchema,
   type LoginFormData,
   type SignupFormData,
 } from "@/lib/schema";
 import { signUpAction } from "@/app/actions/auth";
+import { authClient } from "@/lib/auth-client";
+import Link from "next/link";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
@@ -31,7 +34,7 @@ export default function AuthPage() {
     handleSubmit: handleLoginSubmit,
     formState: { errors: loginErrors, isSubmitting: isLoginSubmitting },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(signInSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -43,7 +46,7 @@ export default function AuthPage() {
     handleSubmit: handleSignupSubmit,
     formState: { errors: signupErrors, isSubmitting: isSignupSubmitting },
   } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -67,17 +70,21 @@ export default function AuthPage() {
     formData.append("confirmPassword", data.confirmPassword);
 
     await signUpAction(formData);
-   
   };
-
+  const handleGoogleSignUp = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/home",
+    });
+  };
   return (
-    <Card className="m-auto w-full max-w-sm overflow-auto border">
+    <Card className="m-auto w-full max-w-sm overflow-auto">
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as "login" | "signup")}
         className="mx-2"
       >
-        <TabsList className="mx-auto mb-4 grid w-fit grid-cols-2 px-2">
+        <TabsList className="mx-auto mb-4 grid w-fit grid-cols-2 border px-2">
           <TabsTrigger value="login" className="px-4">
             Login
           </TabsTrigger>
@@ -87,15 +94,15 @@ export default function AuthPage() {
         </TabsList>
 
         {/* LOGIN TAB */}
-        <TabsContent value="login">
+        <TabsContent value="login" className="min-h-48">
           <form onSubmit={handleLoginSubmit(onLoginSubmit)}>
-            <CardHeader>
+            <CardHeader className="mb-4 text-center text-balance">
               <CardTitle>Login to your account</CardTitle>
-              <CardDescription className="mb-2">
+              <CardDescription className="mb-4">
                 Enter your email below to login to your account
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 text-lg">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
                 <Controller
@@ -106,6 +113,7 @@ export default function AuthPage() {
                       {...field}
                       id="login-email"
                       type="email"
+                      autoFocus
                       placeholder="m@example.com"
                       aria-invalid={loginErrors.email ? "true" : "false"}
                     />
@@ -156,7 +164,12 @@ export default function AuthPage() {
               >
                 {isLoginSubmitting ? "Logging in..." : "Login"}
               </Button>
-              <Button variant="outline" className="w-full" type="button">
+              <Button
+                variant="outline"
+                className="w-full"
+                type="button"
+                onClick={handleGoogleSignUp}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="256"
@@ -189,7 +202,7 @@ export default function AuthPage() {
         {/* SIGNUP TAB */}
         <TabsContent value="signup">
           <form onSubmit={handleSignupSubmit(onSignupSubmit)}>
-            <CardHeader className="mb-4">
+            <CardHeader className="mb-4 text-center text-balance">
               <CardTitle>Create an account</CardTitle>
               <CardDescription>
                 Enter your information below to create your account
@@ -293,9 +306,54 @@ export default function AuthPage() {
               >
                 {isSignupSubmitting ? "Creating account..." : "Sign Up"}
               </Button>
-              <Button variant="outline" className="w-full" type="button">
-                Sign up with Google
+              <Button
+                variant="outline"
+                className="w-full"
+                type="button"
+                onClick={handleGoogleSignUp}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="256"
+                  height="262"
+                  viewBox="0 0 256 262"
+                >
+                  <path
+                    fill="#4285f4"
+                    d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"
+                  />
+                  <path
+                    fill="#34a853"
+                    d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"
+                  />
+                  <path
+                    fill="#fbbc05"
+                    d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z"
+                  />
+                  <path
+                    fill="#eb4335"
+                    d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
+                  />
+                </svg>{" "}
+                Sign Up with Google
               </Button>
+              {/* T&C */}
+              <p className="mt-4 text-center text-xs text-balance">
+                By registering, you accept our{" "}
+                <Link href={""} className="underline">
+                  <HoverCard>
+                    <HoverCardTrigger>Terms of use</HoverCardTrigger>
+                    <HoverCardContent>Terms & Conditions.</HoverCardContent>
+                  </HoverCard>
+                </Link>{" "}
+                and{" "}
+                <Link href="" className="underline">
+                  <HoverCard>
+                    <HoverCardTrigger>Privacy Policy</HoverCardTrigger>
+                    <HoverCardContent>Privacy Policy.</HoverCardContent>
+                  </HoverCard>
+                </Link>
+              </p>
             </CardFooter>
           </form>
         </TabsContent>
