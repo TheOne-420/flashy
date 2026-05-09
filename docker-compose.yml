@@ -1,4 +1,6 @@
 services:
+  # PostgreSQL Database
+  # Access: psql -h localhost -U root -d flashy
   postgres:
     image: postgres:16-alpine
     environment:
@@ -15,6 +17,8 @@ services:
       timeout: 5s
       retries: 5
 
+  # PDF Text Extraction Service
+  # Endpoints: GET /health, POST /extract-text
   pdf-service:
     build:
       context: ./services/pdf
