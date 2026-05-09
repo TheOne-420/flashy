@@ -88,10 +88,8 @@ export default function Landing() {
           <a href="#" className="hover:text-primary-foreground">
             Features
           </a>
-          <a href="#" className="hover:text-primary-foreground">
-            Pricing
-          </a>
-          <a href="#" className="hover:text-primary-foreground">
+
+          <a href="/login" className="hover:text-primary-foreground">
             Login
           </a>
         </nav>

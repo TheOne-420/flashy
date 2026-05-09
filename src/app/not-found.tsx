@@ -10,7 +10,7 @@ export default function NotFound() {
         <h1 className="font-bbh text-9xl text-white">404</h1>
 
         <p className="mt-4 text-2xl text-white">
-          Sorry, looks like this page doesn't exist.
+          {`Sorry, looks like this page doesn't exist.`}
         </p>
 
         <p className="mt-2 text-lg text-white/70">
