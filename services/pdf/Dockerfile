@@ -11,9 +11,14 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o pdf-service .
 
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache ca-certificates curl
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

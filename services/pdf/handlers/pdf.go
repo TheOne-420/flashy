@@ -13,7 +13,7 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-const maxFileSize = 10 * 1024 * 1024
+const maxFileSize = 30 * 1024 * 1024
 
 type ExtractTextResponse struct {
 	Success   bool   `json:"success"`
@@ -23,11 +23,31 @@ type ExtractTextResponse struct {
 }
 
 func ExtractText(c *gin.Context) {
-	body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, maxFileSize))
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ExtractTextResponse{
+			Success: false,
+			Error:   "No file provided or invalid form data: " + err.Error(),
+		})
+		return
+	}
+	defer file.Close()
+
+	body, err := io.ReadAll(http.MaxBytesReader(nil, file, maxFileSize))
 	if err != nil {
 		c.JSON(http.StatusRequestEntityTooLarge, ExtractTextResponse{
 			Success: false,
-			Error:   "File too large. Maximum size is 10MB",
+			Error:   "File too large. Maximum size is 30MB",
+		})
+		return
+	}
+
+	file.Seek(0, 0)
+	body, err = io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ExtractTextResponse{
+			Success: false,
+			Error:   "Failed to read file",
 		})
 		return
 	}
