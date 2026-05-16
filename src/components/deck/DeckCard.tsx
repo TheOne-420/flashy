@@ -1,8 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileUp } from "lucide-react";
+import { Plus, FileUp, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const DECK_COLORS = [
+  "#6366f1", // Indigo
+  "#8b5cf6", // Violet
+  "#ec4899", // Pink
+  "#ef4444", // Red
+  "#f97316", // Orange
+  "#eab308", // Yellow
+  "#22c55e", // Green
+  "#14b8a6", // Teal
+  "#0ea5e9", // Sky
+  "#64748b", // Slate
+];
 
 interface DeckCardProps {
   id: string;
@@ -10,30 +23,104 @@ interface DeckCardProps {
   description: string | null;
   cardCount: number;
   dueCount: number;
+  color?: string;
   onClick: () => void;
+  onEdit?: (
+    id: string,
+    name: string,
+    description: string,
+    color: string,
+  ) => void;
 }
 
 export function DeckCard({
+  id,
   name,
   description,
   cardCount,
   dueCount,
+  color = "#6366f1",
   onClick,
+  onEdit,
 }: DeckCardProps) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState(name);
+  const [editDesc, setEditDesc] = useState(description || "");
+  const [editColor, setEditColor] = useState(color);
+
+  const handleSave = () => {
+    onEdit?.(id, editName, editDesc, editColor);
+    setShowEdit(false);
+  };
+
+  if (showEdit) {
+    return (
+      <div className="w-full rounded-xl border border-violet-500 bg-white p-6 dark:bg-zinc-900">
+        <div className="mb-4">
+          <input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="mb-2 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            placeholder="Deck name"
+          />
+          <textarea
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            className="mb-3 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            placeholder="Description"
+            rows={2}
+          />
+          <ColorPicker value={editColor} onChange={setEditColor} />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 rounded-lg bg-violet-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setShowEdit(false)}
+            className="flex-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
       className="group relative w-full rounded-xl border border-zinc-200 bg-white p-6 text-left transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
     >
+      <div
+        className="absolute top-0 left-0 h-1 w-full rounded-t-xl"
+        style={{ backgroundColor: color }}
+      />
       <div className="mb-2 flex items-center justify-between">
         <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
           {name}
         </h3>
-        {dueCount > 0 && (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
-            {dueCount}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {dueCount > 0 && (
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
+              {dueCount}
+            </span>
+          )}
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEdit(true);
+              }}
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <Pencil className="h-4 w-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+            </button>
+          )}
+        </div>
       </div>
       {description && (
         <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
@@ -47,19 +134,47 @@ export function DeckCard({
   );
 }
 
+interface ColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+}
+
+export function ColorPicker({ value, onChange }: ColorPickerProps) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {DECK_COLORS.map((color) => (
+        <button
+          key={color}
+          type="button"
+          onClick={() => onChange(color)}
+          className={cn(
+            "h-8 w-8 rounded-full transition-transform hover:scale-110",
+            value === color &&
+              "ring-2 ring-zinc-400 ring-offset-2 dark:ring-offset-zinc-900",
+          )}
+          style={{ backgroundColor: color }}
+        />
+      ))}
+    </div>
+  );
+}
+
 interface CreateDeckModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, description: string) => Promise<void>;
+  onSubmit: (name: string, description: string, color: string) => Promise<void>;
+  defaultColor?: string;
 }
 
 export function CreateDeckModal({
   isOpen,
   onClose,
   onSubmit,
+  defaultColor = "#6366f1",
 }: CreateDeckModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [color, setColor] = useState(defaultColor);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,9 +182,10 @@ export function CreateDeckModal({
     if (!name.trim()) return;
     setIsLoading(true);
     try {
-      await onSubmit(name.trim(), description.trim());
+      await onSubmit(name.trim(), description.trim(), color);
       setName("");
       setDescription("");
+      setColor(defaultColor);
       onClose();
     } finally {
       setIsLoading(false);
@@ -98,7 +214,7 @@ export function CreateDeckModal({
               required
             />
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Description (optional)
             </label>
@@ -109,6 +225,12 @@ export function CreateDeckModal({
               placeholder="Enter description"
               rows={3}
             />
+          </div>
+          <div className="mb-6">
+            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Deck Color
+            </label>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
           <div className="flex gap-3">
             <button
@@ -137,7 +259,7 @@ interface UploadPDFModalProps {
   onClose: () => void;
   onUpload: (file: File, deckId: string) => Promise<void>;
   deckId: string;
-  decks: { id: string; name: string }[];
+  decks: { id: string; name: string; color?: string }[];
   onDeckChange: (id: string) => void;
 }
 

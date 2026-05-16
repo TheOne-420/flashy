@@ -17,6 +17,7 @@ export const deck = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     description: text("description"),
+    color: text("color").default("#6366f1"),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -34,6 +35,8 @@ export const card = pgTable(
       .references(() => deck.id, { onDelete: "cascade" }),
     front: text("front").notNull(),
     back: text("back").notNull(),
+    color: text("color"),
+    starred: integer("starred").default(0).notNull(),
     ...timestamps,
   },
   (table) => [index("card_deckId_idx").on(table.deckId)],
