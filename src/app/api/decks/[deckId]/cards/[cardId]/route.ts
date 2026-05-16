@@ -18,7 +18,7 @@ export async function PATCH(
 
     const { deckId, cardId } = await params;
     const body = await request.json();
-    const { front, back } = body;
+    const { front, back, starred } = body;
 
     const userDeck = await db.query.deck.findFirst({
       where: and(eq(deck.id, deckId), eq(deck.userId, session.user.id)),
@@ -41,6 +41,8 @@ export async function PATCH(
       .set({
         front: front?.trim() ?? existingCard.front,
         back: back?.trim() ?? existingCard.back,
+        starred:
+          starred !== undefined ? (starred ? 1 : 0) : existingCard.starred,
       })
       .where(eq(card.id, cardId))
       .returning();
