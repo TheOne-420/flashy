@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
-
 interface FlashCardProps {
   front: string;
   back: string;
+  hint?: string;
   isFlipped: boolean;
   onFlip: () => void;
 }
 
-export function FlashCard({ front, back, isFlipped, onFlip }: FlashCardProps) {
+export function FlashCard({
+  front,
+  back,
+  hint,
+  isFlipped,
+  onFlip,
+}: FlashCardProps) {
   return (
     <button
       onClick={onFlip}
@@ -25,12 +30,17 @@ export function FlashCard({ front, back, isFlipped, onFlip }: FlashCardProps) {
         }}
       >
         <div
-          className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
           style={{ backfaceVisibility: "hidden" }}
         >
           <p className="text-center text-lg font-medium text-zinc-900 dark:text-zinc-100">
             {front}
           </p>
+          {hint && !isFlipped && (
+            <p className="mt-4 text-sm text-violet-500 dark:text-violet-400">
+              💡 {hint}
+            </p>
+          )}
         </div>
         <div
           className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-8 shadow-lg dark:bg-emerald-900/20"

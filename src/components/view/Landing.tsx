@@ -109,15 +109,15 @@ export default function Landing() {
 
           {/* Center */}
           <nav className="flex items-center justify-center gap-8 text-sm font-medium">
-            <a href="#" className="transition hover:text-white/70">
-              Home
-            </a>
-            <a href="#" className="transition hover:text-white/70">
+            <Link href="/study" className="transition hover:text-white/70">
+              Study
+            </Link>
+            {/*<a href="#" className="transition hover:text-white/70">
               Features
             </a>
             <a href="#" className="transition hover:text-white/70">
               Pricing
-            </a>
+            </a>*/}
           </nav>
 
           {/* Right */}
@@ -161,7 +161,7 @@ export default function Landing() {
 
                   <div className="mt-4 space-y-2">
                     <Link
-                      href="/dashboard"
+                      href="/study"
                       className="block rounded-xl px-3 py-2 text-sm transition hover:bg-white/10"
                     >
                       Dashboard

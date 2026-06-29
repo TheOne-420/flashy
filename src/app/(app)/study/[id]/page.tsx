@@ -76,7 +76,10 @@ export default function StudyPage() {
           setTestQuestions(data.questions || []);
         }
       } else {
-        const res = await fetch(`/api/decks/${deckId}/study`);
+        const includeAll = mode === "weakspots" || mode === "learn";
+        const res = await fetch(
+          `/api/decks/${deckId}/study?includeAll=${includeAll}`,
+        );
         if (res.ok) {
           const data = await res.json();
           let studyCards = data.dueCards || [];
@@ -131,6 +134,10 @@ export default function StudyPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFlipped, cards, currentIndex, studyMode]);
+
+  useEffect(() => {
+    setIsFlipped(false);
+  }, [currentIndex]);
 
   const handleTestAnswer = async (selectedIndex: number) => {
     const question = testQuestions[currentIndex];
@@ -293,6 +300,19 @@ export default function StudyPage() {
   const isEmpty =
     studyMode === "test" ? testQuestions.length === 0 : cards.length === 0;
 
+  const handleStudyAgain = () => {
+    setCurrentIndex(0);
+    setCompletedCount(0);
+    setCorrectCount(0);
+    setIsFlipped(false);
+    setSessionComplete(false);
+    setXpEarned(0);
+    setShuffled(false);
+    setCards([]);
+    setTestQuestions([]);
+    setTimeout(() => fetchStudySession(), 0);
+  };
+
   if (isEmpty) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-6 px-4">
@@ -309,17 +329,25 @@ export default function StudyPage() {
                 ? "Great work! All cards learned."
                 : "You've completed all cards for this session."}
         </p>
-        <button
-          onClick={() => router.push(`/deck/${deckId}`)}
-          className="rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
-          Back to Deck
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleStudyAgain}
+            className="rounded-lg bg-emerald-500 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-600"
+          >
+            Study Again
+          </button>
+          <button
+            onClick={() => router.push(`/deck/${deckId}`)}
+            className="rounded-lg bg-zinc-100 px-6 py-3 font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            Back to Deck
+          </button>
+        </div>
       </div>
     );
   }
 
-  const progress = isFocusMode ? Math.min(completedCount / 10, 1) : 0;
+  const progress = isFocusMode ? Math.min(completedCount / cards.length, 1) : 0;
   const currentItem =
     studyMode === "test" ? testQuestions[currentIndex] : cards[currentIndex];
   const total = studyMode === "test" ? testQuestions.length : cards.length;
@@ -416,6 +444,7 @@ export default function StudyPage() {
             <FlashCard
               front={currentItem.front}
               back={currentItem.back}
+              hint={currentItem.hint}
               isFlipped={isFlipped}
               onFlip={() => setIsFlipped(!isFlipped)}
             />

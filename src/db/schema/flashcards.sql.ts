@@ -35,6 +35,7 @@ export const card = pgTable(
       .references(() => deck.id, { onDelete: "cascade" }),
     front: text("front").notNull(),
     back: text("back").notNull(),
+    hint: text("hint"),
     color: text("color"),
     starred: integer("starred").default(0).notNull(),
     ...timestamps,

@@ -15,6 +15,13 @@
       "when": 1778834406056,
       "tag": "0001_modern_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778893800543,
+      "tag": "0002_equal_spot",
+      "breakpoints": true
     }
   ]
 }

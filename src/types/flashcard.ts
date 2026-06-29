@@ -32,6 +32,8 @@ export interface CardWithProgress {
   deckId: string;
   front: string;
   back: string;
+  hint?: string;
+  starred: number;
   createdAt: Date;
   updatedAt: Date;
   progress: CardProgressData | null;

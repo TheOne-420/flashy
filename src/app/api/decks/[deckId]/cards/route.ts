@@ -57,7 +57,7 @@ export async function POST(
 
     const { deckId } = await params;
     const body = await request.json();
-    const { front, back, cards } = body;
+    const { front, back, hint, cards } = body;
 
     const userDeck = await db.query.deck.findFirst({
       where: and(eq(deck.id, deckId), eq(deck.userId, session.user.id)),
@@ -71,10 +71,11 @@ export async function POST(
       const newCards = await db
         .insert(card)
         .values(
-          cards.map((c: { front: string; back: string }) => ({
+          cards.map((c: { front: string; back: string; hint?: string }) => ({
             deckId,
             front: c.front,
             back: c.back,
+            hint: c.hint?.trim() || null,
           })),
         )
         .returning();
@@ -94,6 +95,7 @@ export async function POST(
         deckId,
         front: front.trim(),
         back: back.trim(),
+        hint: hint?.trim() || null,
       })
       .returning();
 
