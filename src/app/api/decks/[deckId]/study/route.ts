@@ -29,6 +29,9 @@ export async function GET(
       return NextResponse.json({ error: "Deck not found" }, { status: 404 });
     }
 
+    const url = new URL(request.url);
+    const includeAll = url.searchParams.get("includeAll") === "true";
+
     const dueCards = await db.query.card.findMany({
       where: eq(card.deckId, deckId),
       with: {
@@ -36,10 +39,17 @@ export async function GET(
       },
     });
 
-    const studyCards = dueCards.filter((c) => {
-      if (!c.progress) return true;
-      return new Date(c.progress.nextReviewAt) <= now;
-    });
+    let studyCards;
+    if (includeAll) {
+      studyCards = dueCards.filter((c) => c.progress);
+    } else {
+      const dueOnly = dueCards.filter((c) => {
+        if (!c.progress) return true;
+        return new Date(c.progress.nextReviewAt) <= now;
+      });
+      studyCards =
+        dueOnly.length > 0 ? dueOnly : dueCards.filter((c) => c.progress);
+    }
 
     return NextResponse.json({
       dueCards: studyCards,

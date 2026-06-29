@@ -56,12 +56,63 @@ export function getNewCardSRS(): Pick<
   };
 }
 
+function isMetadataLine(line: string): boolean {
+  const metadataPatterns = [
+    /^new$/i,
+    /^page\s*\d+$/i,
+    /^\d+$/,
+    /^header/i,
+    /^footer/i,
+  ];
+  return metadataPatterns.some((p) => p.test(line));
+}
+
+function extractQAPairs(lines: string[]): { front: string; back: string }[] {
+  const cards: { front: string; back: string }[] = [];
+  let currentQ = "";
+  let inQuestion = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const qMatch = trimmed.match(/^Q:\s*(.+)/i);
+    const aMatch = trimmed.match(/^A:\s*(.+)/i);
+
+    if (qMatch) {
+      if (currentQ && inQuestion) {
+        cards.push({ front: currentQ, back: "" });
+      }
+      currentQ = qMatch[1].trim();
+      inQuestion = true;
+    } else if (aMatch && currentQ) {
+      cards.push({ front: currentQ, back: aMatch[1].trim() });
+      currentQ = "";
+      inQuestion = false;
+    } else if (inQuestion && currentQ) {
+      currentQ += " " + trimmed;
+    }
+  }
+
+  if (currentQ && inQuestion) {
+    cards.push({ front: currentQ, back: "" });
+  }
+
+  return cards;
+}
+
 export function parseTextToCards(
   text: string,
   cardsPerPage: number = 5,
 ): { front: string; back: string }[] {
-  const lines = text.split("\n").filter((line) => line.trim().length > 0);
+  const lines = text.split("\n").filter((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !isMetadataLine(trimmed);
+  });
   const cards: { front: string; back: string }[] = [];
+
+  const qaPairs = extractQAPairs(lines);
+  if (qaPairs.length > 0) {
+    return qaPairs.slice(0, 50);
+  }
 
   for (let i = 0; i < lines.length; i += 2) {
     const front = lines[i]?.trim() || "";

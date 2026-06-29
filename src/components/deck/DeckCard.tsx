@@ -317,7 +317,7 @@ export function UploadPDFModal({
           </div>
           <div className="mb-6">
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              PDF File (max 10MB)
+              PDF File (max 30MB)
             </label>
             <input
               type="file"

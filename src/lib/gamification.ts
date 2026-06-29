@@ -25,23 +25,21 @@ export function useGamification() {
     goalCompleted: false,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [fetched, setFetched] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    if (fetched) return;
+    setIsLoading(true);
     try {
       const res = await fetch("/api/gamification");
       if (res.ok) {
         const data = await res.json();
         setStats(data);
-        setFetched(true);
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [fetched]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,39 +48,36 @@ export function useGamification() {
     return () => clearTimeout(timer);
   }, [fetchStats]);
 
-  const addXP = useCallback(
-    async (amount: number, cardsCount: number = 1) => {
-      try {
-        const res = await fetch("/api/gamification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "review",
-            xpEarned: amount,
-            cardsReviewed: cardsCount,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setStats({
-            xp: data.xp,
-            level: data.level,
-            currentStreak: data.streak,
-            longestStreak: Math.max(stats.longestStreak, data.streak),
-            totalCardsReviewed: data.cardsReviewed,
-            dailyGoal: data.dailyGoal,
-            dailyProgress: data.dailyProgress,
-            goalCompleted: data.goalCompleted,
-          });
-          return data;
-        }
-      } catch (error) {
-        console.error("Failed to update XP:", error);
+  const addXP = useCallback(async (amount: number, cardsCount: number = 1) => {
+    try {
+      const res = await fetch("/api/gamification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "review",
+          xpEarned: amount,
+          cardsReviewed: cardsCount,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats((prev) => ({
+          xp: data.xp,
+          level: data.level,
+          currentStreak: data.streak,
+          longestStreak: Math.max(prev.longestStreak, data.streak),
+          totalCardsReviewed: data.cardsReviewed,
+          dailyGoal: data.dailyGoal,
+          dailyProgress: data.dailyProgress,
+          goalCompleted: data.goalCompleted,
+        }));
+        return data;
       }
-      return null;
-    },
-    [stats.longestStreak],
-  );
+    } catch (error) {
+      console.error("Failed to update XP:", error);
+    }
+    return null;
+  }, []);
 
   return { ...stats, isLoading, addXP, refresh: fetchStats };
 }

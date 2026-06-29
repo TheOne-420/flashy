@@ -38,7 +38,7 @@ export function SessionTimer({
           style={{ width: `${100 - progress}%` }}
         />
       </div>
-      <span className="min-w-[3rem] font-mono text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <span className="min-w-12 font-mono text-sm font-medium text-zinc-700 dark:text-zinc-300">
         {mins}:{secs.toString().padStart(2, "0")}
       </span>
       <button
