@@ -6,6 +6,7 @@ import {
   integer,
   real,
   uuid,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth.sql";
@@ -21,9 +22,15 @@ export const deck = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    isPublic: boolean("is_public").default(false).notNull(),
+    originalDeckId: uuid("original_deck_id").references((): any => deck.id, { onDelete: "set null" }),
+    forkCount: integer("fork_count").default(0).notNull(),
     ...timestamps,
   },
-  (table) => [index("deck_userId_idx").on(table.userId)],
+  (table) => [
+    index("deck_userId_idx").on(table.userId),
+    index("deck_isPublic_idx").on(table.isPublic),
+  ],
 );
 
 export const card = pgTable(
@@ -70,6 +77,10 @@ export const deckRelations = relations(deck, ({ one, many }) => ({
     references: [user.id],
   }),
   cards: many(card),
+  originalDeck: one(deck, {
+    fields: [deck.originalDeckId],
+    references: [deck.id],
+  }),
 }));
 
 export const cardRelations = relations(card, ({ one, one: progressOne }) => ({

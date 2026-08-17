@@ -1,6 +1,9 @@
 "use client";
 
+import MarkdownRenderer from "./MarkdownRenderer";
+
 interface FlashCardProps {
+  key?: string;
   front: string;
   back: string;
   hint?: string;
@@ -9,6 +12,7 @@ interface FlashCardProps {
 }
 
 export function FlashCard({
+  key,
   front,
   back,
   hint,
@@ -17,6 +21,7 @@ export function FlashCard({
 }: FlashCardProps) {
   return (
     <button
+      key={key}
       onClick={onFlip}
       className="perspective-1000 relative h-80 w-full max-w-lg cursor-pointer"
     >
@@ -30,12 +35,12 @@ export function FlashCard({
         }}
       >
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+          className="absolute inset-0 flex flex-col items-center justify-center overflow-y-auto rounded-2xl border-2 border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
           style={{ backfaceVisibility: "hidden" }}
         >
-          <p className="text-center text-lg font-medium text-zinc-900 dark:text-zinc-100">
-            {front}
-          </p>
+          <div className="text-center text-lg font-medium text-zinc-900 dark:text-zinc-100">
+            <MarkdownRenderer text={front} />
+          </div>
           {hint && !isFlipped && (
             <p className="mt-4 text-sm text-violet-500 dark:text-violet-400">
               💡 {hint}
@@ -43,12 +48,12 @@ export function FlashCard({
           )}
         </div>
         <div
-          className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-8 shadow-lg dark:bg-emerald-900/20"
+          className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-8 shadow-lg dark:bg-emerald-900/20"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <p className="text-center text-lg font-medium text-emerald-900 dark:text-emerald-100">
-            {back}
-          </p>
+          <div className="text-center text-lg font-medium text-emerald-900 dark:text-emerald-100">
+            <MarkdownRenderer text={back} />
+          </div>
         </div>
       </div>
     </button>

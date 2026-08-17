@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
+
+export interface CardsPerDay {
+  date: string;
+  count: number;
+}
 
 interface GamificationStats {
   xp: number;
@@ -11,19 +17,27 @@ interface GamificationStats {
   dailyGoal: number;
   dailyProgress: number;
   goalCompleted: boolean;
+  nextLevelXp: number;
+  cardsPerDay: CardsPerDay[];
+  forecast: CardsPerDay[];
 }
 
+const defaults: GamificationStats = {
+  xp: 0,
+  level: 1,
+  currentStreak: 0,
+  longestStreak: 0,
+  totalCardsReviewed: 0,
+  dailyGoal: 20,
+  dailyProgress: 0,
+  goalCompleted: false,
+  nextLevelXp: 1000,
+  cardsPerDay: [],
+  forecast: [],
+};
+
 export function useGamification() {
-  const [stats, setStats] = useState<GamificationStats>({
-    xp: 0,
-    level: 1,
-    currentStreak: 0,
-    longestStreak: 0,
-    totalCardsReviewed: 0,
-    dailyGoal: 20,
-    dailyProgress: 0,
-    goalCompleted: false,
-  });
+  const [stats, setStats] = useState<GamificationStats>(defaults);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -32,7 +46,7 @@ export function useGamification() {
       const res = await fetch("/api/gamification");
       if (res.ok) {
         const data = await res.json();
-        setStats(data);
+        setStats((prev) => ({ ...prev, ...data }));
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -62,6 +76,7 @@ export function useGamification() {
       if (res.ok) {
         const data = await res.json();
         setStats((prev) => ({
+          ...prev,
           xp: data.xp,
           level: data.level,
           currentStreak: data.streak,
@@ -70,7 +85,19 @@ export function useGamification() {
           dailyGoal: data.dailyGoal,
           dailyProgress: data.dailyProgress,
           goalCompleted: data.goalCompleted,
+          nextLevelXp: (data.level || 1) * 1000,
         }));
+
+        if (data.newAchievements?.length > 0) {
+          for (const a of data.newAchievements) {
+            toast(a.name, {
+              description: a.description,
+              icon: a.icon,
+              duration: 5000,
+            });
+          }
+        }
+
         return data;
       }
     } catch (error) {

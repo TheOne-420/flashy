@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Plus,
   FileUp,
@@ -11,6 +12,12 @@ import {
   Flame,
   Bell,
   CheckCircle2,
+  Store,
+  Trophy,
+  Search,
+  ArrowUpDown,
+  Filter,
+  Star,
 } from "lucide-react";
 import {
   DeckCard,
@@ -19,6 +26,9 @@ import {
 } from "@/components/deck/DeckCard";
 import { XPDisplay } from "@/components/study/SessionTimer";
 import { Badge } from "@/components/ui/badge";
+import StudyHistoryFeed from "@/components/study/StudyHistoryFeed";
+import ActivityChart from "@/components/study/ActivityChart";
+import ReviewForecast from "@/components/study/ReviewForecast";
 import type { DeckWithCards } from "@/types/flashcard";
 import { parseTextToCards } from "@/lib/srs";
 import { useGamification, getWeakSpots, getDueCount } from "@/lib/gamification";
@@ -30,14 +40,21 @@ export default function HomePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDeckId, setSelectedDeckId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "due" | "created" | "cards">("name");
+  const [showOnlyDue, setShowOnlyDue] = useState(false);
 
   const {
     xp,
+    level,
     currentStreak,
     isLoading: statsLoading,
     dailyGoal,
     dailyProgress,
     goalCompleted,
+    nextLevelXp,
+    cardsPerDay,
+    forecast,
   } = useGamification();
 
   const loadDecks = useCallback(async () => {
@@ -78,18 +95,19 @@ export default function HomePage() {
     name: string,
     description: string,
     color: string,
+    isPublic?: boolean,
   ) => {
     const res = await fetch(`/api/decks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, color }),
+      body: JSON.stringify({ name, description, color, isPublic }),
     });
     if (res.ok) {
       loadDecks();
     }
   };
 
-  const handleUpload = async (file: File, deckId: string) => {
+  const handleUpload = async (file: File, deckId: string, useAI?: boolean) => {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -100,7 +118,21 @@ export default function HomePage() {
 
     if (uploadRes.ok) {
       const result = await uploadRes.json();
-      const parsedCards = parseTextToCards(result.text);
+      let parsedCards = parseTextToCards(result.text);
+
+      if (useAI) {
+        const aiRes = await fetch("/api/parse-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: result.text }),
+        });
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          if (aiData.cards && aiData.cards.length > 0) {
+            parsedCards = aiData.cards;
+          }
+        }
+      }
 
       if (parsedCards.length > 0) {
         await fetch(`/api/decks/${deckId}/cards`, {
@@ -126,6 +158,30 @@ export default function HomePage() {
     (sum, d) => sum + getDeckWeakSpotCount(d),
     0,
   );
+
+  const filteredDecks = decks
+    .filter((d) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!d.name.toLowerCase().includes(q)) return false;
+      }
+      if (showOnlyDue && getDeckDueCount(d) === 0) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "due":
+          return getDeckDueCount(b) - getDeckDueCount(a);
+        case "cards":
+          return b.cards.length - a.cards.length;
+        case "created":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        default:
+          return 0;
+      }
+    });
 
   if (isLoading || statsLoading) {
     return (
@@ -153,6 +209,30 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4">
             <XPDisplay xp={xp} streak={currentStreak} />
+
+            <div className="flex items-center gap-1">
+              <Link
+                href="/marketplace"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                <Store className="h-4 w-4" />
+                Marketplace
+              </Link>
+              <Link
+                href="/leaderboard"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                <Trophy className="h-4 w-4" />
+                Leaderboard
+              </Link>
+              <Link
+                href="/achievements"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+              >
+                <Trophy className="h-4 w-4" />
+                Achievements
+              </Link>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -200,40 +280,69 @@ export default function HomePage() {
         )}
 
         {decks.length > 0 && (
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Total Decks
-              </p>
-              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                {decks.length}
-              </p>
+          <>
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Total Decks
+                </p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                  {decks.length}
+                </p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Total Cards
+                </p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                  {decks.reduce((sum, d) => sum + d.cards.length, 0)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Due Today
+                </p>
+                <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">
+                  {totalDue}
+                </p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Level
+                </p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                  {level}
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all"
+                    style={{
+                      width: `${nextLevelXp > 0 ? Math.min((xp / nextLevelXp) * 100, 100) : 0}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  {xp} / {nextLevelXp} XP
+                </p>
+              </div>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Total Cards
-              </p>
-              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                {decks.reduce((sum, d) => sum + d.cards.length, 0)}
-              </p>
+
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <ActivityChart cardsPerDay={cardsPerDay} />
+              <ReviewForecast forecast={forecast} />
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Weak Spots
+                </h3>
+                <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">
+                  {totalWeakSpots}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  cards needing extra review
+                </p>
+              </div>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Due Today
-              </p>
-              <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">
-                {totalDue}
-              </p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Weak Spots
-              </p>
-              <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                {totalWeakSpots}
-              </p>
-            </div>
-          </div>
+          </>
         )}
 
         {!goalCompleted && dailyGoal > 0 && (
@@ -377,6 +486,15 @@ export default function HomePage() {
           </div>
         )}
 
+        {decks.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Recent Activity
+            </h2>
+            <StudyHistoryFeed />
+          </div>
+        )}
+
         {decks.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-zinc-200 p-12 text-center dark:border-zinc-800">
             <p className="mb-2 text-lg font-medium text-zinc-500 dark:text-zinc-400">
@@ -394,21 +512,68 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {decks.map((deck) => (
-              <DeckCard
-                key={deck.id}
-                id={deck.id}
-                name={deck.name}
-                description={deck.description}
-                cardCount={deck.cards.length}
-                dueCount={getDeckDueCount(deck)}
-                color={deck.color || "#6366f1"}
-                onClick={() => router.push(`/deck/${deck.id}`)}
-                onEdit={editDeck}
-              />
-            ))}
-          </div>
+          <>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Search decks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-10 pr-4 text-sm text-zinc-900 placeholder-zinc-400 focus:border-violet-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowOnlyDue(!showOnlyDue)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    showOnlyDue
+                      ? "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/20 dark:text-violet-300"
+                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <Filter className="h-4 w-4" />
+                  Due only
+                </button>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 focus:border-violet-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                >
+                  <option value="name">Name</option>
+                  <option value="due">Due count</option>
+                  <option value="cards">Card count</option>
+                  <option value="created">Newest</option>
+                </select>
+              </div>
+            </div>
+            {filteredDecks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-200 p-8 text-center dark:border-zinc-800">
+                <Search className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-600" />
+                <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">
+                  No decks match your search
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredDecks.map((deck) => (
+                  <DeckCard
+                    key={deck.id}
+                    id={deck.id}
+                    name={deck.name}
+                    description={deck.description}
+                    cardCount={deck.cards.length}
+                    dueCount={getDeckDueCount(deck)}
+                    color={deck.color || "#6366f1"}
+                    isPublic={deck.isPublic}
+                    onClick={() => router.push(`/deck/${deck.id}`)}
+                    onEdit={editDeck}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
