@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+dist
+build
+coverage
+.env
+*.log
+tmp
+.cache
+bun.lockb.tmp
+services/pdf/bin
