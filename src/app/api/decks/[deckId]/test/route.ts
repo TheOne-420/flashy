@@ -45,7 +45,7 @@ export async function GET(
 
     if (mode === "learn") {
       const missed = cards.filter(
-        (c) => c.progress && c.progress.repetitions < 3,
+        (c) => c.progress && !Array.isArray(c.progress) && (c.progress as any).repetitions < 3,
       );
       if (missed.length > 0) {
         cards = missed;

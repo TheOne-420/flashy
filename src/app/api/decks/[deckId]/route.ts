@@ -57,7 +57,7 @@ export async function PATCH(
 
     const { deckId } = await params;
     const body = await request.json();
-    const { name, description, color } = body;
+    const { name, description, color, isPublic } = body;
 
     const existingDeck = await db.query.deck.findFirst({
       where: and(eq(deck.id, deckId), eq(deck.userId, session.user.id)),
@@ -76,6 +76,8 @@ export async function PATCH(
             ? description?.trim() || null
             : existingDeck.description,
         color: color || existingDeck.color,
+        isPublic:
+          isPublic !== undefined ? isPublic : existingDeck.isPublic,
       })
       .where(and(eq(deck.id, deckId), eq(deck.userId, session.user.id)))
       .returning();
