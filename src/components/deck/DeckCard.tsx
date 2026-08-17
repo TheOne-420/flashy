@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileUp, Pencil, X } from "lucide-react";
+import { Plus, FileUp, Pencil, X, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DECK_COLORS = [
@@ -24,12 +24,14 @@ interface DeckCardProps {
   cardCount: number;
   dueCount: number;
   color?: string;
+  isPublic?: boolean;
   onClick: () => void;
   onEdit?: (
     id: string,
     name: string,
     description: string,
     color: string,
+    isPublic?: boolean,
   ) => void;
 }
 
@@ -40,6 +42,7 @@ export function DeckCard({
   cardCount,
   dueCount,
   color = "#6366f1",
+  isPublic,
   onClick,
   onEdit,
 }: DeckCardProps) {
@@ -47,9 +50,10 @@ export function DeckCard({
   const [editName, setEditName] = useState(name);
   const [editDesc, setEditDesc] = useState(description || "");
   const [editColor, setEditColor] = useState(color);
+  const [editPublic, setEditPublic] = useState(isPublic || false);
 
   const handleSave = () => {
-    onEdit?.(id, editName, editDesc, editColor);
+    onEdit?.(id, editName, editDesc, editColor, editPublic);
     setShowEdit(false);
   };
 
@@ -71,6 +75,15 @@ export function DeckCard({
             rows={2}
           />
           <ColorPicker value={editColor} onChange={setEditColor} />
+          <label className="mt-3 flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <input
+              type="checkbox"
+              checked={editPublic}
+              onChange={(e) => setEditPublic(e.target.checked)}
+              className="rounded border-zinc-300"
+            />
+            Publish to marketplace
+          </label>
         </div>
         <div className="flex gap-2">
           <button
@@ -104,6 +117,9 @@ export function DeckCard({
           {name}
         </h3>
         <div className="flex items-center gap-2">
+          {isPublic && (
+            <Globe className="h-3.5 w-3.5 text-emerald-500" />
+          )}
           {dueCount > 0 && (
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
               {dueCount}
@@ -257,7 +273,7 @@ export function CreateDeckModal({
 interface UploadPDFModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (file: File, deckId: string) => Promise<void>;
+  onUpload: (file: File, deckId: string, useAI?: boolean) => Promise<void>;
   deckId: string;
   decks: { id: string; name: string; color?: string }[];
   onDeckChange: (id: string) => void;
@@ -273,14 +289,16 @@ export function UploadPDFModal({
 }: UploadPDFModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [useAI, setUseAI] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !deckId) return;
     setIsLoading(true);
     try {
-      await onUpload(file, deckId);
+      await onUpload(file, deckId, useAI);
       setFile(null);
+      setUseAI(false);
       onClose();
     } finally {
       setIsLoading(false);
@@ -315,7 +333,7 @@ export function UploadPDFModal({
               ))}
             </select>
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               PDF File (max 30MB)
             </label>
@@ -326,6 +344,17 @@ export function UploadPDFModal({
               className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-zinc-900 focus:border-zinc-400 focus:outline-none dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-100"
               required
             />
+          </div>
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+              <input
+                type="checkbox"
+                checked={useAI}
+                onChange={(e) => setUseAI(e.target.checked)}
+                className="rounded border-zinc-300"
+              />
+              Use AI parsing (better quality, requires API key)
+            </label>
           </div>
           <div className="flex gap-3">
             <button
