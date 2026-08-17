@@ -41,14 +41,14 @@ export async function GET(
 
     let studyCards;
     if (includeAll) {
-      studyCards = dueCards.filter((c) => c.progress);
+      studyCards = dueCards.filter((c) => c.progress && !Array.isArray(c.progress));
     } else {
       const dueOnly = dueCards.filter((c) => {
-        if (!c.progress) return true;
-        return new Date(c.progress.nextReviewAt) <= now;
+        if (!c.progress || Array.isArray(c.progress)) return true;
+        return new Date((c.progress as any).nextReviewAt) <= now;
       });
       studyCards =
-        dueOnly.length > 0 ? dueOnly : dueCards.filter((c) => c.progress);
+        dueOnly.length > 0 ? dueOnly : dueCards.filter((c) => c.progress && !Array.isArray(c.progress));
     }
 
     return NextResponse.json({
@@ -119,12 +119,13 @@ export async function POST(
     const existingProgress = targetCard.progress;
     let newProgress;
 
-    if (existingProgress) {
+    if (existingProgress && !Array.isArray(existingProgress)) {
+      const p = existingProgress as any;
       const srsResult = calculateSRS(
         quality,
-        existingProgress.easeFactor,
-        existingProgress.interval,
-        existingProgress.repetitions,
+        p.easeFactor,
+        p.interval,
+        p.repetitions,
       );
 
       newProgress = await db
@@ -136,7 +137,7 @@ export async function POST(
           nextReviewAt: srsResult.nextReviewAt,
           lastReviewedAt: new Date(),
         })
-        .where(eq(cardProgress.id, existingProgress.id))
+        .where(eq(cardProgress.id, p.id))
         .returning();
     } else {
       const srsResult = calculateSRS(quality, 2.5, 0, 0);
@@ -156,7 +157,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      progress: newProgress[0],
+      progress: (newProgress as any[])[0],
       quality,
     });
   } catch (error) {

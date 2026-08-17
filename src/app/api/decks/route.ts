@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json({ deck: newDeck[0] }, { status: 201 });
+    return NextResponse.json({ deck: (newDeck as any[])[0] }, { status: 201 });
   } catch (error) {
     console.error("Create deck error:", error);
     return NextResponse.json(

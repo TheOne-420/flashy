@@ -22,6 +22,9 @@ export interface DeckWithCards {
   description: string | null;
   color?: string;
   userId: string;
+  isPublic: boolean;
+  originalDeckId: string | null;
+  forkCount: number;
   createdAt: Date;
   updatedAt: Date;
   cards: CardWithProgress[];
@@ -84,4 +87,34 @@ export interface UpdateCardInput {
 export interface BulkCreateCardsInput {
   deckId: string;
   cards: { front: string; back: string }[];
+}
+
+export interface MarketplaceDeck {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  cardCount: number;
+  forkCount: number;
+  authorName: string;
+  authorImage: string | null;
+  createdAt: Date;
+}
+
+export interface MarketplaceResponse {
+  decks: MarketplaceDeck[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  image: string | null;
+  xp: number;
+  level: number;
+  currentStreak: number;
+  totalCardsReviewed: number;
 }
